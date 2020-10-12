@@ -4,9 +4,9 @@
   Copyright 2020 Unit Protocol: Artem Zakharov (az@unit.xyz).
 */
 pragma solidity ^0.6.8;
+pragma experimental ABIEncoderV2;
 
 import "./UniswapOracleAbstract.sol";
-pragma experimental ABIEncoderV2;
 
 
 /**
@@ -20,7 +20,7 @@ abstract contract ChainlinkedUniswapOracleMainAssetAbstract is UniswapOracleAbst
     function assetToEth(
         address asset,
         uint amount,
-        ProofDataStruct memory proofData
+        UniswapOracle.ProofData memory proofData
     ) public virtual view returns (uint) {}
 
     function ethToUsd(uint ethAmount) public virtual view returns (uint) {}

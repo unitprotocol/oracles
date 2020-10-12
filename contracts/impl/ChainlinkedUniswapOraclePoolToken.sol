@@ -43,7 +43,7 @@ contract ChainlinkedUniswapOraclePoolToken is ChainlinkedUniswapOraclePoolTokenA
     function assetToUsd(
         address asset,
         uint amount,
-        ProofDataStruct memory proofData
+        UniswapOracle.ProofData memory proofData
     )
         public
         override

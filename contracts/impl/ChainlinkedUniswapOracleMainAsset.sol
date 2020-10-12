@@ -55,7 +55,7 @@ contract ChainlinkedUniswapOracleMainAsset is UniswapOracle, ChainlinkedUniswapO
      * @param amount Amount of tokens
      * @return Q112-encoded price of tokens in USD
      **/
-    function assetToUsd(address asset, uint amount, ProofDataStruct memory proofData) public override view returns (uint) {
+    function assetToUsd(address asset, uint amount, ProofData memory proofData) public override view returns (uint) {
 
         uint priceInEth = assetToEth(
             asset,
@@ -73,7 +73,7 @@ contract ChainlinkedUniswapOracleMainAsset is UniswapOracle, ChainlinkedUniswapO
      * @param amount Amount of tokens
      * @return Q112-encoded price of asset in ETH
      **/
-    function assetToEth(address asset, uint amount, ProofDataStruct memory proofData) public override view returns (uint) {
+    function assetToEth(address asset, uint amount, ProofData memory proofData) public override view returns (uint) {
         if (asset == WETH) {
             return amount.mul(Q112);
         }
@@ -85,12 +85,7 @@ contract ChainlinkedUniswapOracleMainAsset is UniswapOracle, ChainlinkedUniswapO
             WETH,
             MIN_BLOCKS_BACK,
             MAX_BLOCKS_BACK,
-            ProofData(
-                proofData.block,
-                proofData.accountProofNodesRlp,
-                proofData.reserveAndTimestampProofNodesRlp,
-                proofData.priceAccumulatorProofNodesRlp
-            )
+            proofData
         );
         return priceInEth.mul(amount);
     }
