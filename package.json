@@ -1,0 +1,13 @@
+{
+  "name": "oracles",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/unitprotocol/oracles",
+  "dependencies": {
+    "@keydonix/uniswap-oracle-contracts": "^1.0.2",
+    "truffle": "^5.1.48"
+  },
+  "scripts": {
+    "build": "rm -rf build && truffle compile"
+  }
+}
