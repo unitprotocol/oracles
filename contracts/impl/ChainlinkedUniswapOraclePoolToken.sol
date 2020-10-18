@@ -33,7 +33,7 @@ contract ChainlinkedUniswapOraclePoolToken is ChainlinkedUniswapOraclePoolTokenA
 
     /**
      * @notice This function implements flashloan-resistant logic to determine USD price of Uniswap LP tokens
-     * @notice Block number of merkle proof must be in range [MIN_BLOCKS_BACK ... MAX_BLOCKS_BACK] blocks ago (see ChainlinkedUniswapOracle)
+     * @notice Block number of merkle proof must be in range [MIN_BLOCKS_BACK ... MAX_BLOCKS_BACK] (see ChainlinkedUniswapOracleMainAsset)
      * @notice Pair must be registered on Uniswap
      * @param asset The LP token address
      * @param amount Amount of asset
