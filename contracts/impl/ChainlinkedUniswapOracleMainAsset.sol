@@ -74,9 +74,14 @@ contract ChainlinkedUniswapOracleMainAsset is UniswapOracle, ChainlinkedUniswapO
      * @return Q112-encoded price of asset in ETH
      **/
     function assetToEth(address asset, uint amount, ProofData memory proofData) public override view returns (uint) {
+        if (amount == 0) {
+            return 0;
+        }
+
         if (asset == WETH) {
             return amount.mul(Q112);
         }
+
         IUniswapV2Pair pair = IUniswapV2Pair(uniswapFactory.getPair(asset, WETH));
         require(address(pair) != address(0), "USDP: UNISWAP_PAIR_DOES_NOT_EXIST");
 
