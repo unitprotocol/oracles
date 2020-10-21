@@ -20,13 +20,6 @@ import "../abstract/ChainlinkedUniswapOraclePoolTokenAbstract.sol";
 contract ChainlinkedUniswapOraclePoolToken is ChainlinkedUniswapOraclePoolTokenAbstract {
     using SafeMath for uint;
 
-    uint public constant magicNum1 = 9;
-    uint public constant magicNum2 = 3988000;
-    uint public constant magicNum3 = 1997;
-    uint public constant magicNum4 = 2000;
-    uint public constant magicNum5 = 3;
-    uint public constant magicNum6 = 2;
-
     constructor(address _uniswapOracleMainAsset) public {
         uniswapOracleMainAsset = ChainlinkedUniswapOracleMainAssetAbstract(_uniswapOracleMainAsset);
     }
@@ -78,23 +71,23 @@ contract ChainlinkedUniswapOraclePoolToken is ChainlinkedUniswapOraclePoolTokenA
 
         if (eCurr < eAvg) {
             // flashloan with buying WETH
-            uint sqrtd = ePool.mul((ePool).mul(magicNum1).add(
-                aPool.mul(magicNum2).mul(eAvg).div(Q112)
+            uint sqrtd = ePool.mul((ePool).mul(9).add(
+                aPool.mul(3988000).mul(eAvg).div(Q112)
             ));
-            uint eChange = sqrt(sqrtd).sub(ePool.mul(magicNum3)).div(magicNum4);
+            uint eChange = sqrt(sqrtd).sub(ePool.mul(1997)).div(2000);
             ePoolCalc = ePool.add(eChange);
         } else {
             // flashloan with selling WETH
             uint a = aPool.mul(eAvg);
-            uint b = a.mul(magicNum1).div(Q112);
-            uint c = ePool.mul(magicNum2);
+            uint b = a.mul(9).div(Q112);
+            uint c = ePool.mul(3988000);
             uint sqRoot = sqrt(a.div(Q112).mul(b.add(c)));
-            uint d = a.mul(magicNum5).div(Q112);
-            uint eChange = ePool.sub(d.add(sqRoot).div(magicNum4));
+            uint d = a.mul(3).div(Q112);
+            uint eChange = ePool.sub(d.add(sqRoot).div(2000));
             ePoolCalc = ePool.sub(eChange);
         }
 
-        uint num = ePoolCalc.mul(magicNum6).mul(amount).mul(Q112);
+        uint num = ePoolCalc.mul(2).mul(amount).mul(Q112);
         uint priceInEth = num.div(pair.totalSupply());
 
         return uniswapOracleMainAsset.ethToUsd(priceInEth);
