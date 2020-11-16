@@ -38,9 +38,9 @@ contract ChainlinkedUniswapOracleMainAsset is UniswapOracle, ChainlinkedUniswapO
     )
         public
     {
-        require(address(uniFactory) != address(0), "USDP: ZERO_ADDRESS");
-        require(weth != address(0), "USDP: ZERO_ADDRESS");
-        require(address(chainlinkAggregator) != address(0), "USDP: ZERO_ADDRESS");
+        require(address(uniFactory) != address(0), "Unit Protocol: ZERO_ADDRESS");
+        require(weth != address(0), "Unit Protocol: ZERO_ADDRESS");
+        require(address(chainlinkAggregator) != address(0), "Unit Protocol: ZERO_ADDRESS");
 
         uniswapFactory = uniFactory;
         WETH = weth;
@@ -83,7 +83,7 @@ contract ChainlinkedUniswapOracleMainAsset is UniswapOracle, ChainlinkedUniswapO
         }
 
         IUniswapV2Pair pair = IUniswapV2Pair(uniswapFactory.getPair(asset, WETH));
-        require(address(pair) != address(0), "USDP: UNISWAP_PAIR_DOES_NOT_EXIST");
+        require(address(pair) != address(0), "Unit Protocol: UNISWAP_PAIR_DOES_NOT_EXIST");
 
         (uint priceInEth, ) = getPrice(
             pair,
@@ -100,7 +100,7 @@ contract ChainlinkedUniswapOracleMainAsset is UniswapOracle, ChainlinkedUniswapO
      * returns Price of given amount of Ether in USD (0 decimals)
      **/
     function ethToUsd(uint ethAmount) public override view returns (uint) {
-        require(ethUsdChainlinkAggregator.latestTimestamp() > now - 6 hours, "USDP: OUTDATED_CHAINLINK_PRICE");
+        require(ethUsdChainlinkAggregator.latestTimestamp() > now - 6 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
         uint ethUsdPrice = uint(ethUsdChainlinkAggregator.latestAnswer());
         return ethAmount.mul(ethUsdPrice).div(ETH_USD_DENOMINATOR);
     }

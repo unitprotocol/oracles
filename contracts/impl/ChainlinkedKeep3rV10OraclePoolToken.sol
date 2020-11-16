@@ -8,35 +8,35 @@ pragma experimental ABIEncoderV2;
 
 import "../helpers/SafeMath.sol";
 import "../helpers/IUniswapV2Pair.sol";
-import "../abstract/ChainlinkedUniswapOracleMainAssetAbstract.sol";
-import "../abstract/ChainlinkedUniswapOraclePoolTokenAbstract.sol";
+import "../abstract/OracleSimple.sol";
 
 
 /**
- * @title ChainlinkedUniswapOraclePoolToken
+ * @title ChainlinkedKeep3rV1OraclePoolToken
  * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
  * @dev Calculates the USD price of Uniswap LP tokens
  **/
-contract ChainlinkedUniswapOraclePoolToken is ChainlinkedUniswapOraclePoolTokenAbstract {
+contract ChainlinkedKeep3rV1OraclePoolToken is OracleSimple {
     using SafeMath for uint;
 
-    constructor(address _uniswapOracleMainAsset) public {
-        uniswapOracleMainAsset = ChainlinkedUniswapOracleMainAssetAbstract(_uniswapOracleMainAsset);
+    uint public immutable Q112 = 2 ** 112;
+
+    ChainlinkedOracleSimple public immutable keep3rOracleMainAsset;
+
+    constructor(address _keep3rOracleMainAsset) public {
+        keep3rOracleMainAsset = ChainlinkedOracleSimple(_keep3rOracleMainAsset);
     }
 
     /**
      * @notice This function implements flashloan-resistant logic to determine USD price of Uniswap LP tokens
-     * @notice Block number of merkle proof must be in range [MIN_BLOCKS_BACK ... MAX_BLOCKS_BACK] (see ChainlinkedUniswapOracleMainAsset)
-     * @notice Pair must be registered on Uniswap
+     * @notice Pair must be registered at Keep3rV1Oracle
      * @param asset The LP token address
      * @param amount Amount of asset
-     * @param proofData The proof data of underlying token price
      * @return Q112 encoded price of asset in USD
      **/
     function assetToUsd(
         address asset,
-        uint amount,
-        UniswapOracle.ProofData memory proofData
+        uint amount
     )
         public
         override
@@ -45,15 +45,16 @@ contract ChainlinkedUniswapOraclePoolToken is ChainlinkedUniswapOraclePoolTokenA
     {
         IUniswapV2Pair pair = IUniswapV2Pair(asset);
         address underlyingAsset;
-        if (pair.token0() == uniswapOracleMainAsset.WETH()) {
+        if (pair.token0() == keep3rOracleMainAsset.WETH()) {
             underlyingAsset = pair.token1();
-        } else if (pair.token1() == uniswapOracleMainAsset.WETH()) {
+        } else if (pair.token1() == keep3rOracleMainAsset.WETH()) {
             underlyingAsset = pair.token0();
         } else {
             revert("Unit Protocol: NOT_REGISTERED_PAIR");
         }
 
-        uint eAvg = uniswapOracleMainAsset.assetToEth(underlyingAsset, 1, proofData); // average price of 1 token in ETH
+        // average price of 1 token in ETH
+        uint eAvg = keep3rOracleMainAsset.assetToEth(underlyingAsset, 1);
 
         (uint112 _reserve0, uint112 _reserve1,) = pair.getReserves();
         uint aPool; // current asset pool
@@ -90,7 +91,7 @@ contract ChainlinkedUniswapOraclePoolToken is ChainlinkedUniswapOraclePoolTokenA
         uint num = ePoolCalc.mul(2).mul(amount).mul(Q112);
         uint priceInEth = num.div(pair.totalSupply());
 
-        return uniswapOracleMainAsset.ethToUsd(priceInEth);
+        return keep3rOracleMainAsset.ethToUsd(priceInEth);
     }
 
     function sqrt(uint x) internal pure returns (uint y) {

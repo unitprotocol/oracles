@@ -14,7 +14,7 @@ import { UniswapOracle } from  '@keydonix/uniswap-oracle-contracts/source/Uniswa
  **/
 abstract contract UniswapOracleAbstract {
 
-    uint public constant Q112 = 2 ** 112;
+    uint public immutable Q112 = 2 ** 112;
 
     function assetToUsd(
         address asset,
