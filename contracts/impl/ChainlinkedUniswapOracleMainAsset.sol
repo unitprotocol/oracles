@@ -25,7 +25,7 @@ contract ChainlinkedUniswapOracleMainAsset is UniswapOracle, ChainlinkedUniswapO
 
     uint8 public constant MAX_BLOCKS_BACK = uint8(255);
 
-    uint public constant ETH_USD_DENOMINATOR = 100000000;
+    uint public constant ETH_USD_DENOMINATOR = 1e8;
 
     AggregatorInterface public ethUsdChainlinkAggregator;
 
