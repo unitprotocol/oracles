@@ -6,14 +6,14 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import "./UniswapOracleAbstract.sol";
+import "./KeydonixOracleAbstract.sol";
 
 
 /**
- * @title ChainlinkedUniswapOracleMainAssetAbstract
+ * @title ChainlinkedKeydonixOracleMainAssetAbstract
  * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
  **/
-abstract contract ChainlinkedUniswapOracleMainAssetAbstract is UniswapOracleAbstract {
+abstract contract ChainlinkedKeydonixOracleMainAssetAbstract is KeydonixOracleAbstract {
 
     address public WETH;
 

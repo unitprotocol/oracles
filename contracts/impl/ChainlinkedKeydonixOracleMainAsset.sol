@@ -10,15 +10,15 @@ import "../helpers/SafeMath.sol";
 import { UniswapOracle, IUniswapV2Pair } from  '@keydonix/uniswap-oracle-contracts/source/UniswapOracle.sol';
 import "../helpers/AggregatorInterface.sol";
 import "../helpers/IUniswapV2Factory.sol";
-import "../abstract/ChainlinkedUniswapOracleMainAssetAbstract.sol";
+import "../abstract/ChainlinkedKeydonixOracleMainAssetAbstract.sol";
 
 
 /**
- * @title ChainlinkedUniswapOracleMainAsset
+ * @title ChainlinkedKeydonixOracleMainAsset
  * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
  * @dev Calculates the USD price of desired tokens
  **/
-contract ChainlinkedUniswapOracleMainAsset is UniswapOracle, ChainlinkedUniswapOracleMainAssetAbstract {
+contract ChainlinkedKeydonixOracleMainAsset is UniswapOracle, ChainlinkedKeydonixOracleMainAssetAbstract {
     using SafeMath for uint;
 
     uint8 public constant MIN_BLOCKS_BACK = uint8(100);

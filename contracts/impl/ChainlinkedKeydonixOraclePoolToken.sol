@@ -8,25 +8,25 @@ pragma experimental ABIEncoderV2;
 
 import "../helpers/SafeMath.sol";
 import "../helpers/IUniswapV2Pair.sol";
-import "../abstract/ChainlinkedUniswapOracleMainAssetAbstract.sol";
-import "../abstract/ChainlinkedUniswapOraclePoolTokenAbstract.sol";
+import "../abstract/ChainlinkedKeydonixOracleMainAssetAbstract.sol";
+import "../abstract/ChainlinkedKeydonixOraclePoolTokenAbstract.sol";
 
 
 /**
- * @title ChainlinkedUniswapOraclePoolToken
+ * @title ChainlinkedKeydonixOraclePoolToken
  * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
  * @dev Calculates the USD price of Uniswap LP tokens
  **/
-contract ChainlinkedUniswapOraclePoolToken is ChainlinkedUniswapOraclePoolTokenAbstract {
+contract ChainlinkedKeydonixOraclePoolToken is ChainlinkedKeydonixOraclePoolTokenAbstract {
     using SafeMath for uint;
 
     constructor(address _uniswapOracleMainAsset) public {
-        uniswapOracleMainAsset = ChainlinkedUniswapOracleMainAssetAbstract(_uniswapOracleMainAsset);
+        uniswapOracleMainAsset = ChainlinkedKeydonixOracleMainAssetAbstract(_uniswapOracleMainAsset);
     }
 
     /**
      * @notice This function implements flashloan-resistant logic to determine USD price of Uniswap LP tokens
-     * @notice Block number of merkle proof must be in range [MIN_BLOCKS_BACK ... MAX_BLOCKS_BACK] (see ChainlinkedUniswapOracleMainAsset)
+     * @notice Block number of merkle proof must be in range [MIN_BLOCKS_BACK ... MAX_BLOCKS_BACK] (see ChainlinkedKeydonixOracleMainAsset)
      * @notice Pair must be registered on Uniswap
      * @param asset The LP token address
      * @param amount Amount of asset
