@@ -4,7 +4,6 @@
   Copyright 2020 Unit Protocol: Artem Zakharov (az@unit.xyz).
 */
 pragma solidity ^0.6.8;
-pragma experimental ABIEncoderV2;
 
 import "../helpers/SafeMath.sol";
 import "../helpers/IUniswapV2Pair.sol";
@@ -16,15 +15,13 @@ import "../abstract/OracleSimple.sol";
  * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
  * @dev Calculates the USD price of Uniswap LP tokens
  **/
-contract ChainlinkedKeep3rV1OraclePoolToken is OracleSimple {
+contract ChainlinkedKeep3rV1OraclePoolToken is OracleSimplePoolToken {
     using SafeMath for uint;
 
     uint public immutable Q112 = 2 ** 112;
 
-    ChainlinkedOracleSimple public immutable keep3rOracleMainAsset;
-
     constructor(address _keep3rOracleMainAsset) public {
-        keep3rOracleMainAsset = ChainlinkedOracleSimple(_keep3rOracleMainAsset);
+        oracleMainAsset = ChainlinkedOracleSimple(_keep3rOracleMainAsset);
     }
 
     /**
@@ -45,16 +42,16 @@ contract ChainlinkedKeep3rV1OraclePoolToken is OracleSimple {
     {
         IUniswapV2Pair pair = IUniswapV2Pair(asset);
         address underlyingAsset;
-        if (pair.token0() == keep3rOracleMainAsset.WETH()) {
+        if (pair.token0() == oracleMainAsset.WETH()) {
             underlyingAsset = pair.token1();
-        } else if (pair.token1() == keep3rOracleMainAsset.WETH()) {
+        } else if (pair.token1() == oracleMainAsset.WETH()) {
             underlyingAsset = pair.token0();
         } else {
             revert("Unit Protocol: NOT_REGISTERED_PAIR");
         }
 
         // average price of 1 token in ETH
-        uint eAvg = keep3rOracleMainAsset.assetToEth(underlyingAsset, 1);
+        uint eAvg = oracleMainAsset.assetToEth(underlyingAsset, 1);
 
         (uint112 _reserve0, uint112 _reserve1,) = pair.getReserves();
         uint aPool; // current asset pool
@@ -91,7 +88,7 @@ contract ChainlinkedKeep3rV1OraclePoolToken is OracleSimple {
         uint num = ePoolCalc.mul(2).mul(amount).mul(Q112);
         uint priceInEth = num.div(pair.totalSupply());
 
-        return keep3rOracleMainAsset.ethToUsd(priceInEth);
+        return oracleMainAsset.ethToUsd(priceInEth);
     }
 
     function sqrt(uint x) internal pure returns (uint y) {

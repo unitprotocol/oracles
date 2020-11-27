@@ -17,6 +17,15 @@ abstract contract OracleSimple {
 
 
 /**
+ * @title OracleSimplePoolToken
+ * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
+ **/
+abstract contract OracleSimplePoolToken is OracleSimple {
+    ChainlinkedOracleSimple public oracleMainAsset;
+}
+
+
+/**
  * @title ChainlinkedOracleSimple
  * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
  **/
