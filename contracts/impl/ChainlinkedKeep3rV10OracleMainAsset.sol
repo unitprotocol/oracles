@@ -72,6 +72,9 @@ contract ChainlinkedKeep3rV1OracleMainAsset is ChainlinkedOracleSimple {
      * @return Q112-encoded price of asset amount in ETH
      **/
     function assetToEth(address asset, uint amount) public view override returns (uint) {
+        if (amount == 0) {
+            return 0;
+        }
         if (asset == WETH) {
             return amount.mul(Q112);
         }
