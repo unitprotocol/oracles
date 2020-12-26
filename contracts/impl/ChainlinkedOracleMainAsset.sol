@@ -57,8 +57,8 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
         address[] calldata tokenAddresses2,
         address[] calldata _ethAggregators
     ) external onlyManager {
-        require(tokenAddresses1.length != _usdAggregators.length, "Unit Protocol: ARGUMENTS_LENGTH_MISMATCH");
-        require(tokenAddresses2.length != _ethAggregators.length, "Unit Protocol: ARGUMENTS_LENGTH_MISMATCH");
+        require(tokenAddresses1.length == _usdAggregators.length, "Unit Protocol: ARGUMENTS_LENGTH_MISMATCH");
+        require(tokenAddresses2.length == _ethAggregators.length, "Unit Protocol: ARGUMENTS_LENGTH_MISMATCH");
 
         for (uint i = 0; i < tokenAddresses1.length; i++) {
             usdAggregators[tokenAddresses1[i]] = _usdAggregators[i];
