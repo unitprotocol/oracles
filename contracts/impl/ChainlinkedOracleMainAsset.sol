@@ -35,8 +35,8 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
         public
         Auth(vaultParameters)
     {
-        require(tokenAddresses1.length != _usdAggregators.length, "Unit Protocol: ARGUMENTS_LENGTH_MISMATCH");
-        require(tokenAddresses2.length != _ethAggregators.length, "Unit Protocol: ARGUMENTS_LENGTH_MISMATCH");
+        require(tokenAddresses1.length == _usdAggregators.length, "Unit Protocol: ARGUMENTS_LENGTH_MISMATCH");
+        require(tokenAddresses2.length == _ethAggregators.length, "Unit Protocol: ARGUMENTS_LENGTH_MISMATCH");
         require(weth != address(0), "Unit Protocol: ZERO_ADDRESS");
         require(vaultParameters != address(0), "Unit Protocol: ZERO_ADDRESS");
 
