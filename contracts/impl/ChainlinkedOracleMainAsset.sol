@@ -87,8 +87,9 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
 
     function _assetToUsd(address asset, uint amount) internal view returns (uint) {
         AggregatorInterface agg = AggregatorInterface(usdAggregators[asset]);
-        require(agg.latestTimestamp() > now - 24 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
-        return amount.mul(uint(agg.latestAnswer())).mul(Q112).div(10 ** agg.decimals());
+        (, int256 answer, , uint256 updatedAt, ) = agg.latestRoundData();
+        require(updatedAt > now - 24 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
+        return amount.mul(uint(answer)).mul(Q112).div(10 ** agg.decimals());
     }
 
     /**
@@ -106,8 +107,9 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
         }
         AggregatorInterface agg = AggregatorInterface(ethAggregators[asset]);
         require(address(agg) != address (0), "Unit Protocol: AGGREGATOR_DOES_NOT_EXIST");
-        require(agg.latestTimestamp() > now - 24 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
-        return amount.mul(uint(agg.latestAnswer())).mul(Q112).div(10 ** agg.decimals());
+        (, int256 answer, , uint256 updatedAt, ) = agg.latestRoundData();
+        require(updatedAt > now - 24 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
+        return amount.mul(uint(answer)).mul(Q112).div(10 ** agg.decimals());
     }
 
     /**
@@ -116,8 +118,8 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
      **/
     function ethToUsd(uint ethAmount) public override view returns (uint) {
         AggregatorInterface agg = AggregatorInterface(usdAggregators[WETH]);
-        require(agg.latestTimestamp() > now - 6 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
-        uint ethUsdPrice = uint(agg.latestAnswer());
-        return ethAmount.mul(ethUsdPrice).div(10 ** agg.decimals());
+        (, int256 answer, , uint256 updatedAt, ) = agg.latestRoundData();
+        require(updatedAt > now - 6 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
+        return ethAmount.mul(uint(answer)).div(10 ** agg.decimals());
     }
 }
