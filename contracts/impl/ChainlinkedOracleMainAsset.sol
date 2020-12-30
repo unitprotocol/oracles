@@ -11,6 +11,9 @@ import "../helpers/AggregatorInterface.sol";
 import "../abstract/OracleSimple.sol";
 import "../helpers/VaultParameters.sol";
 
+interface ERC20 {
+    function decimals() external view returns(uint8);
+}
 
 /**
  * @title ChainlinkedOracleMainAsset
@@ -18,8 +21,6 @@ import "../helpers/VaultParameters.sol";
  **/
 contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
     using SafeMath for uint;
-
-    uint public constant Q112 = 2 ** 112;
 
     mapping (address => address) public usdAggregators;
     mapping (address => address) public ethAggregators;
@@ -73,7 +74,7 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
      * @notice {asset}/USD or {asset}/ETH pair must be registered at Chainlink
      * @param asset The token address
      * @param amount Amount of tokens
-     * @return Q112-encoded price of asset amount in USD
+     * @return The price of asset amount in USD
      **/
     function assetToUsd(address asset, uint amount) public override view returns (uint) {
         if (amount == 0) {
@@ -89,27 +90,39 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
         AggregatorInterface agg = AggregatorInterface(usdAggregators[asset]);
         (, int256 answer, , uint256 updatedAt, ) = agg.latestRoundData();
         require(updatedAt > now - 24 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
-        return amount.mul(uint(answer)).mul(Q112).div(10 ** agg.decimals());
+        require(answer >= 0, "Unit Protocol: NEGATIVE_CHAINLINK_PRICE");
+        int decimals = 18 - int(ERC20(asset).decimals()) - int(agg.decimals());
+        if (decimals < 0) {
+            return amount.mul(uint(answer)).div(10 ** uint(-decimals));
+        } else {
+            return amount.mul(uint(answer)).mul(10 ** uint(decimals));
+        }
     }
 
     /**
      * @notice {asset}/ETH pair must be registered at Chainlink
      * @param asset The token address
      * @param amount Amount of tokens
-     * @return Q112-encoded price of asset amount in ETH
+     * @return The price of asset amount in ETH
      **/
     function assetToEth(address asset, uint amount) public view override returns (uint) {
         if (amount == 0) {
             return 0;
         }
         if (asset == WETH) {
-            return amount.mul(Q112);
+            return amount;
         }
         AggregatorInterface agg = AggregatorInterface(ethAggregators[asset]);
         require(address(agg) != address (0), "Unit Protocol: AGGREGATOR_DOES_NOT_EXIST");
         (, int256 answer, , uint256 updatedAt, ) = agg.latestRoundData();
         require(updatedAt > now - 24 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
-        return amount.mul(uint(answer)).mul(Q112).div(10 ** agg.decimals());
+        require(answer >= 0, "Unit Protocol: NEGATIVE_CHAINLINK_PRICE");
+        int decimals = 18 - int(ERC20(asset).decimals()) - int(agg.decimals());
+        if (decimals < 0) {
+            return amount.mul(uint(answer)).div(10 ** uint(-decimals));
+        } else {
+            return amount.mul(uint(answer)).mul(10 ** uint(decimals));
+        }
     }
 
     /**
