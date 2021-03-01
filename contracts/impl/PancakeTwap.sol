@@ -484,7 +484,7 @@ contract PancakeTwap {
         return PancakeLibrary.pairFor(factory, tokenA, tokenB);
     }
 
-    function pairForWVBNB(address tokenA) external pure returns (address) {
+    function pairForWBNB(address tokenA) external pure returns (address) {
         return PancakeLibrary.pairFor(factory, tokenA, WBNB);
     }
 
@@ -502,12 +502,22 @@ contract PancakeTwap {
     }
 
     function add(address tokenA, address tokenB) external {
-        require(msg.sender == governance, "UniswapV2Oracle::add: !gov");
         address pair = PancakeLibrary.pairFor(factory, tokenA, tokenB);
-        if (_pairs.length != 0) {
-            require(_known[pair] == 0, "UniswapV2Oracle::add: known");
+        addPair(pair);
+    }
+
+    function addWBNBPair(address token) external {
+        address pair = PancakeLibrary.pairFor(factory, token, WBNB);
+        addPair(pair);
+    }
+
+    function addPair(address pair) public {
+        require(msg.sender == governance, "UniswapV2Oracle::add: !gov");
+        uint pairIx = _pairs.length;
+        if (pairIx != 0) {
+            require(_known[pair] == 0 && _pairs[0] != pair, "UniswapV2Oracle::add: known");
         }
-        _known[pair] = _pairs.length;
+        _known[pair] = pairIx;
         _pairs.push(pair);
 
         (uint price0Cumulative, uint price1Cumulative,) = PancakeOracleLibrary.currentCumulativePrices(pair);
@@ -515,10 +525,14 @@ contract PancakeTwap {
     }
 
     function remove(address tokenA, address tokenB) external {
-        require(msg.sender == governance, "UniswapV2Oracle::add: !gov");
         address pair = PancakeLibrary.pairFor(factory, tokenA, tokenB);
+        removePair(pair);
+    }
+
+    function removePair(address pair) public {
+        require(msg.sender == governance, "UniswapV2Oracle::remove: !gov");
         uint index = _known[pair];
-        require(index != 0 || _pairs[0] == pair, "UniswapV2Oracle::add: unknown");
+        require(index != 0 || _pairs[0] == pair, "UniswapV2Oracle::remove: unknown");
         _known[pair] = 0;
 
         uint lastIndex = _pairs.length - 1;
@@ -529,12 +543,17 @@ contract PancakeTwap {
         _known[lastPair] = index;
     }
 
+    function removeWBNBPair(address token) public {
+        address pair = PancakeLibrary.pairFor(factory, token, WBNB);
+        removePair(pair);
+    }
+
     function work() public {
         bool worked = _updateAll();
         require(worked, "UniswapV2Oracle: !work");
     }
 
-    function workForFree() public {
+    function workForFree() external {
         work();
     }
 
