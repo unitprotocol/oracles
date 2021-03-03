@@ -426,8 +426,7 @@ contract PancakeTwap {
 
     struct Observation {
         uint timestamp;
-        uint price0Cumulative;
-        uint price1Cumulative;
+        uint priceCumulative;
     }
 
     address public governance;
@@ -462,8 +461,8 @@ contract PancakeTwap {
      * @param _periodSize new period size
      */
     function setPeriodSize(uint _periodSize) external {
-        require(msg.sender == governance, "UniswapV2Oracle::setPeriod: !gov");
-        require(_periodSize != 0, "UniswapV2Oracle::setPeriod: 0");
+        require(msg.sender == governance, "PancakeTwap::setPeriod: !gov");
+        require(_periodSize != 0, "PancakeTwap::setPeriod: 0");
         periodSize = _periodSize;
     }
 
@@ -501,27 +500,25 @@ contract PancakeTwap {
         return _update(pair);
     }
 
-    function add(address tokenA, address tokenB) external {
-        address pair = PancakeLibrary.pairFor(factory, tokenA, tokenB);
-        addPair(pair);
-    }
-
     function addWBNBPair(address token) external {
         address pair = PancakeLibrary.pairFor(factory, token, WBNB);
         addPair(pair);
     }
 
     function addPair(address pair) public {
-        require(msg.sender == governance, "UniswapV2Oracle::add: !gov");
+        require(msg.sender == governance, "PancakeTwap::addPair: !gov");
         uint pairIx = _pairs.length;
         if (pairIx != 0) {
-            require(_known[pair] == 0 && _pairs[0] != pair, "UniswapV2Oracle::add: known");
+            require(_known[pair] == 0 && _pairs[0] != pair, "PancakeTwap::addPair: known");
         }
         _known[pair] = pairIx;
         _pairs.push(pair);
 
+        address token0 = IPancakePair(pair).token0();
+        address token1 = IPancakePair(pair).token1();
+        require(token0 == WBNB || token1 == WBNB, "PancakeTwap::addPair: !WBNB");
         (uint price0Cumulative, uint price1Cumulative,) = PancakeOracleLibrary.currentCumulativePrices(pair);
-        observations[pair].push(Observation(block.timestamp, price0Cumulative, price1Cumulative));
+        observations[pair].push(Observation(block.timestamp, token0 == WBNB ? price1Cumulative : price0Cumulative));
     }
 
     function remove(address tokenA, address tokenB) external {
@@ -530,17 +527,19 @@ contract PancakeTwap {
     }
 
     function removePair(address pair) public {
-        require(msg.sender == governance, "UniswapV2Oracle::remove: !gov");
+        require(msg.sender == governance, "PancakeTwap::removePair: !gov");
         uint index = _known[pair];
-        require(index != 0 || _pairs[0] == pair, "UniswapV2Oracle::remove: unknown");
+        require(index != 0 || _pairs[0] == pair, "PancakeTwap::removePair: unknown");
         _known[pair] = 0;
 
         uint lastIndex = _pairs.length - 1;
-        address lastPair = _pairs[lastIndex];
-        delete _pairs[lastIndex];
-
-        _pairs[index] = lastPair;
-        _known[lastPair] = index;
+        if (index != lastIndex) {
+            address lastPair = _pairs[lastIndex];
+            _pairs[index] = lastPair;
+            _known[lastPair] = index;
+        }
+        
+        _pairs.pop();
     }
 
     function removeWBNBPair(address token) public {
@@ -550,7 +549,7 @@ contract PancakeTwap {
 
     function work() public {
         bool worked = _updateAll();
-        require(worked, "UniswapV2Oracle: !work");
+        require(worked, "PancakeTwap: !work");
     }
 
     function workForFree() external {
@@ -594,9 +593,10 @@ contract PancakeTwap {
         // we only want to commit updates once per period (i.e. windowSize / granularity)
         Observation memory _point = lastObservation(pair);
         uint timeElapsed = block.timestamp - _point.timestamp;
+        address token0 = IPancakePair(pair).token0();
         if (timeElapsed > periodSize) {
             (uint price0Cumulative, uint price1Cumulative,) = PancakeOracleLibrary.currentCumulativePrices(pair);
-            observations[pair].push(Observation(block.timestamp, price0Cumulative, price1Cumulative));
+            observations[pair].push(Observation(block.timestamp, token0 == WBNB ? price1Cumulative : price0Cumulative));
             return true;
         }
         return false;
@@ -615,191 +615,5 @@ contract PancakeTwap {
 
     function _valid(address pair, uint age) internal view returns (bool) {
         return (block.timestamp - lastObservation(pair).timestamp) <= age;
-    }
-
-    function current(address tokenIn, uint amountIn, address tokenOut) external view returns (uint amountOut) {
-        address pair = PancakeLibrary.pairFor(factory, tokenIn, tokenOut);
-        require(_valid(pair, periodSize.mul(2)), "UniswapV2Oracle::quote: stale prices");
-        (address token0,) = PancakeLibrary.sortTokens(tokenIn, tokenOut);
-
-        Observation memory _observation = lastObservation(pair);
-        (uint price0Cumulative, uint price1Cumulative,) = PancakeOracleLibrary.currentCumulativePrices(pair);
-        if (block.timestamp == _observation.timestamp) {
-            _observation = observations[pair][observations[pair].length-2];
-        }
-
-        uint timeElapsed = block.timestamp - _observation.timestamp;
-        timeElapsed = timeElapsed == 0 ? 1 : timeElapsed;
-        if (token0 == tokenIn) {
-            return computeAmountOut(_observation.price0Cumulative, price0Cumulative, timeElapsed, amountIn);
-        } else {
-            return computeAmountOut(_observation.price1Cumulative, price1Cumulative, timeElapsed, amountIn);
-        }
-    }
-
-    function quote(address tokenIn, uint amountIn, address tokenOut, uint granularity) external view returns (uint amountOut) {
-        address pair = PancakeLibrary.pairFor(factory, tokenIn, tokenOut);
-        require(_valid(pair, periodSize.mul(granularity)), "UniswapV2Oracle::quote: stale prices");
-        (address token0,) = PancakeLibrary.sortTokens(tokenIn, tokenOut);
-
-        uint priceAverageCumulative = 0;
-        uint length = observations[pair].length-1;
-        uint i = length.sub(granularity);
-
-
-        uint nextIndex = 0;
-        if (token0 == tokenIn) {
-            for (; i < length; i++) {
-                nextIndex = i+1;
-                priceAverageCumulative += computeAmountOut(
-                    observations[pair][i].price0Cumulative,
-                    observations[pair][nextIndex].price0Cumulative,
-                    observations[pair][nextIndex].timestamp - observations[pair][i].timestamp, amountIn);
-            }
-        } else {
-            for (; i < length; i++) {
-                nextIndex = i+1;
-                priceAverageCumulative += computeAmountOut(
-                    observations[pair][i].price1Cumulative,
-                    observations[pair][nextIndex].price1Cumulative,
-                    observations[pair][nextIndex].timestamp - observations[pair][i].timestamp, amountIn);
-            }
-        }
-        return priceAverageCumulative.div(granularity);
-    }
-
-    function prices(address tokenIn, uint amountIn, address tokenOut, uint points) external view returns (uint[] memory) {
-        return sample(tokenIn, amountIn, tokenOut, points, 1);
-    }
-
-    function sample(address tokenIn, uint amountIn, address tokenOut, uint points, uint window) public view returns (uint[] memory) {
-        address pair = PancakeLibrary.pairFor(factory, tokenIn, tokenOut);
-        (address token0,) = PancakeLibrary.sortTokens(tokenIn, tokenOut);
-        uint[] memory _prices = new uint[](points);
-
-        uint length = observations[pair].length-1;
-        uint i = length.sub(points * window);
-        uint nextIndex = 0;
-        uint index = 0;
-
-        if (token0 == tokenIn) {
-            for (; i < length; i+=window) {
-                nextIndex = i + window;
-                _prices[index] = computeAmountOut(
-                    observations[pair][i].price0Cumulative,
-                    observations[pair][nextIndex].price0Cumulative,
-                    observations[pair][nextIndex].timestamp - observations[pair][i].timestamp, amountIn);
-                index = index + 1;
-            }
-        } else {
-            for (; i < length; i+=window) {
-                nextIndex = i + window;
-                _prices[index] = computeAmountOut(
-                    observations[pair][i].price1Cumulative,
-                    observations[pair][nextIndex].price1Cumulative,
-                    observations[pair][nextIndex].timestamp - observations[pair][i].timestamp, amountIn);
-                index = index + 1;
-            }
-        }
-        return _prices;
-    }
-
-    function hourly(address tokenIn, uint amountIn, address tokenOut, uint points) external view returns (uint[] memory) {
-        return sample(tokenIn, amountIn, tokenOut, points, 2);
-    }
-
-    function daily(address tokenIn, uint amountIn, address tokenOut, uint points) external view returns (uint[] memory) {
-        return sample(tokenIn, amountIn, tokenOut, points, 48);
-    }
-
-    function weekly(address tokenIn, uint amountIn, address tokenOut, uint points) external view returns (uint[] memory) {
-        return sample(tokenIn, amountIn, tokenOut, points, 336);
-    }
-
-    function realizedVolatility(address tokenIn, uint amountIn, address tokenOut, uint points, uint window) external view returns (uint) {
-        return stddev(sample(tokenIn, amountIn, tokenOut, points, window));
-    }
-
-    function realizedVolatilityHourly(address tokenIn, uint amountIn, address tokenOut) external view returns (uint) {
-        return stddev(sample(tokenIn, amountIn, tokenOut, 1, 2));
-    }
-
-    function realizedVolatilityDaily(address tokenIn, uint amountIn, address tokenOut) external view returns (uint) {
-        return stddev(sample(tokenIn, amountIn, tokenOut, 1, 48));
-    }
-
-    function realizedVolatilityWeekly(address tokenIn, uint amountIn, address tokenOut) external view returns (uint) {
-        return stddev(sample(tokenIn, amountIn, tokenOut, 1, 336));
-    }
-
-    /**
-     * @dev sqrt calculates the square root of a given number x
-     * @dev for precision into decimals the number must first
-     * @dev be multiplied by the precision factor desired
-     * @param x uint256 number for the calculation of square root
-     */
-    function sqrt(uint256 x) public pure returns (uint256) {
-        uint256 c = (x + 1) / 2;
-        uint256 b = x;
-        while (c < b) {
-            b = c;
-            c = (x / c + c) / 2;
-        }
-        return b;
-    }
-
-    /**
-     * @dev stddev calculates the standard deviation for an array of integers
-     * @dev precision is the same as sqrt above meaning for higher precision
-     * @dev the decimal place must be moved prior to passing the params
-     * @param numbers uint[] array of numbers to be used in calculation
-     */
-    function stddev(uint[] memory numbers) public pure returns (uint256 sd) {
-        uint sum = 0;
-        for(uint i = 0; i < numbers.length; i++) {
-            sum += numbers[i];
-        }
-        uint256 mean = sum / numbers.length;        // Integral value; float not supported in Solidity
-        sum = 0;
-        uint i;
-        for(i = 0; i < numbers.length; i++) {
-            sum += (numbers[i] - mean) ** 2;
-        }
-        sd = sqrt(sum / (numbers.length - 1));      //Integral value; float not supported in Solidity
-        return sd;
-    }
-
-
-    /**
-     * @dev blackScholesEstimate calculates a rough price estimate for an ATM option
-     * @dev input parameters should be transformed prior to being passed to the function
-     * @dev so as to remove decimal places otherwise results will be far less accurate
-     * @param _vol uint256 volatility of the underlying converted to remove decimals
-     * @param _underlying uint256 price of the underlying asset
-     * @param _time uint256 days to expiration in years multiplied to remove decimals
-     */
-    function blackScholesEstimate(
-        uint256 _vol,
-        uint256 _underlying,
-        uint256 _time
-    ) public pure returns (uint256 estimate) {
-        estimate = 40 * _vol * _underlying * sqrt(_time);
-        return estimate;
-    }
-
-    /**
-     * @dev fromReturnsBSestimate first calculates the stddev of an array of price returns
-     * @dev then uses that as the volatility param for the blackScholesEstimate
-     * @param _numbers uint256[] array of price returns for volatility calculation
-     * @param _underlying uint256 price of the underlying asset
-     * @param _time uint256 days to expiration in years multiplied to remove decimals
-     */
-    function retBasedBlackScholesEstimate(
-        uint256[] memory _numbers,
-        uint256 _underlying,
-        uint256 _time
-    ) public pure {
-        uint _vol = stddev(_numbers);
-        blackScholesEstimate(_vol, _underlying, _time);
     }
 }

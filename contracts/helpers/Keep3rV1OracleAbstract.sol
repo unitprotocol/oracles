@@ -9,8 +9,7 @@ pragma experimental ABIEncoderV2;
 abstract contract Keep3rV1OracleAbstract {
     struct Observation {
         uint timestamp;
-        uint price0Cumulative;
-        uint price1Cumulative;
+        uint priceCumulative;
     }
     mapping(address => Observation[]) public observations;
 

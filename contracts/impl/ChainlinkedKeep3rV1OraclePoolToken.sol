@@ -12,7 +12,6 @@ import "../abstract/OracleSimple.sol";
 
 /**
  * @title ChainlinkedKeep3rV1OraclePoolToken
- * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
  * @dev Calculates the USD price of Uniswap LP tokens
  **/
 contract ChainlinkedKeep3rV1OraclePoolToken is OracleSimplePoolToken {
@@ -26,7 +25,7 @@ contract ChainlinkedKeep3rV1OraclePoolToken is OracleSimplePoolToken {
 
     /**
      * @notice This function implements flashloan-resistant logic to determine USD price of Uniswap LP tokens
-     * @notice Pair must be registered at Chainlink
+     * @notice Pair must be registered at oracle main asset oracle
      * @param asset The LP token address
      * @param amount Amount of asset
      * @return Q112 encoded price of asset in USD

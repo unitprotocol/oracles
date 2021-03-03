@@ -4,7 +4,6 @@
   Copyright 2020 Unit Protocol: Artem Zakharov (az@unit.xyz).
 */
 pragma solidity ^0.6.8;
-pragma experimental ABIEncoderV2;
 
 import "../helpers/SafeMath.sol";
 import "../helpers/AggregatorInterface.sol";
@@ -17,7 +16,6 @@ import "../abstract/OracleSimple.sol";
 
 /**
  * @title ChainlinkedKeep3rV1OracleMainAsset
- * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
  * @dev Calculates the USD price of desired tokens
  **/
 contract ChainlinkedKeep3rV1OracleMainAsset is ChainlinkedOracleSimple {
@@ -82,7 +80,6 @@ contract ChainlinkedKeep3rV1OracleMainAsset is ChainlinkedOracleSimple {
     }
 
     /**
-     * @notice {asset}/WETH price feed from uniquote.finance, see for more info: https://docs.uniquote.finance/
      * @param tokenIn The token in address
      * @param amountIn Amount of tokens in
      * returns Q112-encoded current asset price in ETH
@@ -93,19 +90,19 @@ contract ChainlinkedKeep3rV1OracleMainAsset is ChainlinkedOracleSimple {
         uint observationLength = keep3rV1Oracle.observationLength(pair);
         require(observationLength > 1, "Unit Protocol: NOT_ENOUGH_OBSERVATIONS");
         uint observationIndex = observationLength - 1;
-        uint timestampObs; uint price0CumulativeObs; uint price1CumulativeObs;
-        (timestampObs, price0CumulativeObs, price1CumulativeObs) = keep3rV1Oracle.observations(pair, observationIndex);
+        uint timestampObs; uint priceCumulativeObs;
+        (timestampObs, priceCumulativeObs) = keep3rV1Oracle.observations(pair, observationIndex);
         (uint price0Cumulative, uint price1Cumulative,) = UniswapV2OracleLibrary.currentCumulativePrices(pair);
         while (block.timestamp - timestampObs < minObservationTimeBack) {
             observationIndex -= 1;
-            (timestampObs, price0CumulativeObs, price1CumulativeObs) = keep3rV1Oracle.observations(pair, observationIndex);
+            (timestampObs, priceCumulativeObs) = keep3rV1Oracle.observations(pair, observationIndex);
             require(block.timestamp - timestampObs <= maxObservationTimeBack, "Unit Protocol: STALE_PRICES");
         }
         uint timeElapsed = block.timestamp - timestampObs;
         if (token0 == tokenIn) {
-            return computeAmountOut(price0CumulativeObs, price0Cumulative, timeElapsed, amountIn);
+            return computeAmountOut(priceCumulativeObs, price0Cumulative, timeElapsed, amountIn);
         } else {
-            return computeAmountOut(price1CumulativeObs, price1Cumulative, timeElapsed, amountIn);
+            return computeAmountOut(priceCumulativeObs, price1Cumulative, timeElapsed, amountIn);
         }
     }
 
