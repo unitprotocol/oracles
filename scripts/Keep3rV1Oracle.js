@@ -81,7 +81,7 @@ function update(gwei, web3) {
             nonce:    web3.utils.toHex(txCount),
             to:       address,
             value:    web3.utils.toHex(web3.utils.toWei('0', 'ether')),
-            gasLimit: web3.utils.toHex(1_000_000),
+            gasLimit: web3.utils.toHex(2_100_000),
             gasPrice: web3.utils.toHex(web3.utils.toWei(''+gwei, 'gwei')),
             data: getOracle(web3).methods.work().encodeABI(),
             from: sender,
