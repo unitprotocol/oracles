@@ -25,6 +25,13 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
     mapping (address => address) public usdAggregators;
     mapping (address => address) public ethAggregators;
 
+    uint public constant Q112 = 2 ** 112;
+
+    uint public constant USD_TYPE = 0;
+    uint public constant ETH_TYPE = 1;
+
+    event NewAggregator(address indexed asset, address indexed aggregator, uint aggType);
+
     constructor(
         address[] memory tokenAddresses1,
         address[] memory _usdAggregators,
@@ -45,10 +52,12 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
 
         for (uint i = 0; i < tokenAddresses1.length; i++) {
             usdAggregators[tokenAddresses1[i]] = _usdAggregators[i];
+            emit NewAggregator(tokenAddresses1[i], _usdAggregators[i], USD_TYPE);
         }
 
         for (uint i = 0; i < tokenAddresses2.length; i++) {
             ethAggregators[tokenAddresses2[i]] = _ethAggregators[i];
+            emit NewAggregator(tokenAddresses2[i], _ethAggregators[i], ETH_TYPE);
         }
     }
 
@@ -63,10 +72,12 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
 
         for (uint i = 0; i < tokenAddresses1.length; i++) {
             usdAggregators[tokenAddresses1[i]] = _usdAggregators[i];
+            emit NewAggregator(tokenAddresses1[i], _usdAggregators[i], USD_TYPE);
         }
 
         for (uint i = 0; i < tokenAddresses2.length; i++) {
             ethAggregators[tokenAddresses2[i]] = _ethAggregators[i];
+            emit NewAggregator(tokenAddresses2[i], _ethAggregators[i], ETH_TYPE);
         }
     }
 
@@ -74,7 +85,7 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
      * @notice {asset}/USD or {asset}/ETH pair must be registered at Chainlink
      * @param asset The token address
      * @param amount Amount of tokens
-     * @return The price of asset amount in USD
+     * @return Q112-encoded price of asset amount in USD
      **/
     function assetToUsd(address asset, uint amount) public override view returns (uint) {
         if (amount == 0) {
@@ -89,13 +100,13 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
     function _assetToUsd(address asset, uint amount) internal view returns (uint) {
         AggregatorInterface agg = AggregatorInterface(usdAggregators[asset]);
         (, int256 answer, , uint256 updatedAt, ) = agg.latestRoundData();
-        require(updatedAt > now - 24 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
+        require(updatedAt > block.timestamp - 24 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
         require(answer >= 0, "Unit Protocol: NEGATIVE_CHAINLINK_PRICE");
         int decimals = 18 - int(ERC20(asset).decimals()) - int(agg.decimals());
         if (decimals < 0) {
-            return amount.mul(uint(answer)).div(10 ** uint(-decimals));
+            return amount.mul(uint(answer)).mul(Q112).div(10 ** uint(-decimals));
         } else {
-            return amount.mul(uint(answer)).mul(10 ** uint(decimals));
+            return amount.mul(uint(answer)).mul(Q112).mul(10 ** uint(decimals));
         }
     }
 
@@ -103,25 +114,25 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
      * @notice {asset}/ETH pair must be registered at Chainlink
      * @param asset The token address
      * @param amount Amount of tokens
-     * @return The price of asset amount in ETH
+     * @return Q112-encoded price of asset amount in ETH
      **/
     function assetToEth(address asset, uint amount) public view override returns (uint) {
         if (amount == 0) {
             return 0;
         }
         if (asset == WETH) {
-            return amount;
+            return amount.mul(Q112);
         }
         AggregatorInterface agg = AggregatorInterface(ethAggregators[asset]);
         require(address(agg) != address (0), "Unit Protocol: AGGREGATOR_DOES_NOT_EXIST");
         (, int256 answer, , uint256 updatedAt, ) = agg.latestRoundData();
-        require(updatedAt > now - 24 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
+        require(updatedAt > block.timestamp - 24 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
         require(answer >= 0, "Unit Protocol: NEGATIVE_CHAINLINK_PRICE");
         int decimals = 18 - int(ERC20(asset).decimals()) - int(agg.decimals());
         if (decimals < 0) {
-            return amount.mul(uint(answer)).div(10 ** uint(-decimals));
+            return amount.mul(uint(answer)).mul(Q112).div(10 ** uint(-decimals));
         } else {
-            return amount.mul(uint(answer)).mul(10 ** uint(decimals));
+            return amount.mul(uint(answer)).mul(Q112).mul(10 ** uint(decimals));
         }
     }
 
@@ -132,7 +143,7 @@ contract ChainlinkedOracleMainAsset is ChainlinkedOracleSimple, Auth {
     function ethToUsd(uint ethAmount) public override view returns (uint) {
         AggregatorInterface agg = AggregatorInterface(usdAggregators[WETH]);
         (, int256 answer, , uint256 updatedAt, ) = agg.latestRoundData();
-        require(updatedAt > now - 6 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
+        require(updatedAt > block.timestamp - 6 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
         return ethAmount.mul(uint(answer)).div(10 ** agg.decimals());
     }
 }
