@@ -12,7 +12,6 @@ import "../abstract/OracleSimple.sol";
 
 /**
  * @title ChainlinkedKeep3rV1OraclePoolToken
- * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
  * @dev Calculates the USD price of Uniswap LP tokens
  **/
 contract ChainlinkedKeep3rV1OraclePoolToken is OracleSimplePoolToken {
@@ -85,8 +84,13 @@ contract ChainlinkedKeep3rV1OraclePoolToken is OracleSimplePoolToken {
             ePoolCalc = ePool.sub(eChange);
         }
 
-        uint num = ePoolCalc.mul(2).mul(amount).mul(Q112);
-        uint priceInEth = num.div(pair.totalSupply());
+        uint num = ePoolCalc.mul(2).mul(amount);
+        uint priceInEth;
+        if (num > Q112) {
+            priceInEth = num.div(pair.totalSupply()).mul(Q112);
+        } else {
+            priceInEth = num.mul(Q112).div(pair.totalSupply());
+        }
 
         return oracleMainAsset.ethToUsd(priceInEth);
     }
