@@ -99,8 +99,9 @@ contract ChainlinkedKeep3rV1OracleMainAsset is ChainlinkedOracleSimple {
         while (block.timestamp - timestampObs < minObservationTimeBack) {
             observationIndex -= 1;
             (timestampObs, price0CumulativeObs, price1CumulativeObs) = keep3rV1Oracle.observations(pair, observationIndex);
-            require(block.timestamp - timestampObs <= maxObservationTimeBack, "Unit Protocol: STALE_PRICES");
+            if (block.timestamp - timestampObs > maxObservationTimeBack) break;
         }
+        require(block.timestamp - timestampObs <= maxObservationTimeBack, "Unit Protocol: STALE_PRICES");
         uint timeElapsed = block.timestamp - timestampObs;
         if (token0 == tokenIn) {
             return computeAmountOut(price0CumulativeObs, price0Cumulative, timeElapsed, amountIn);
