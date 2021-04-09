@@ -12,15 +12,16 @@ import "../helpers/Keep3rV1OracleAbstract.sol";
 import "../helpers/IUniswapV2Factory.sol";
 import "../helpers/UniswapV2Library.sol";
 import "../helpers/UniswapV2OracleLibrary.sol";
-import "../abstract/OracleSimple.sol";
+import "../helpers/IOracleRegistry.sol";
+import "../helpers/IOracleUsd.sol";
+import "../helpers/IOracleEth.sol";
 
 
 /**
  * @title ChainlinkedKeep3rV1OracleMainAsset
- * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
  * @dev Calculates the USD price of desired tokens
  **/
-contract ChainlinkedKeep3rV1OracleMainAsset is ChainlinkedOracleSimple {
+contract ChainlinkedKeep3rV1OracleMainAsset is IOracleUsd {
     using SafeMath for uint;
 
     uint public immutable minObservationTimeBack = 1.5 hours;
@@ -30,7 +31,9 @@ contract ChainlinkedKeep3rV1OracleMainAsset is ChainlinkedOracleSimple {
 
     uint public immutable ETH_USD_DENOMINATOR = 1e8;
 
-    AggregatorInterface public immutable ethUsdChainlinkAggregator;
+    address public immutable WETH;
+
+    IOracleRegistry public immutable oracleRegistry;
 
     Keep3rV1OracleAbstract public immutable keep3rV1Oracle;
 
@@ -39,20 +42,18 @@ contract ChainlinkedKeep3rV1OracleMainAsset is ChainlinkedOracleSimple {
     constructor(
         IUniswapV2Factory _uniFactory,
         Keep3rV1OracleAbstract _keep3rV1Oracle,
-        address weth,
-        AggregatorInterface chainlinkAggregator
+        IOracleRegistry _oracleRegistry
     )
         public
     {
         require(address(_uniFactory) != address(0), "Unit Protocol: ZERO_ADDRESS");
         require(address(_keep3rV1Oracle) != address(0), "Unit Protocol: ZERO_ADDRESS");
-        require(weth != address(0), "Unit Protocol: ZERO_ADDRESS");
-        require(address(chainlinkAggregator) != address(0), "Unit Protocol: ZERO_ADDRESS");
+        require(address(_oracleRegistry) != address(0), "Unit Protocol: ZERO_ADDRESS");
 
         uniswapFactory = _uniFactory;
         keep3rV1Oracle = _keep3rV1Oracle;
-        WETH = weth;
-        ethUsdChainlinkAggregator = chainlinkAggregator;
+        oracleRegistry = _oracleRegistry;
+        WETH = IOracleRegistry(_oracleRegistry).WETH();
     }
 
     /**
@@ -62,7 +63,7 @@ contract ChainlinkedKeep3rV1OracleMainAsset is ChainlinkedOracleSimple {
      * @return Q112-encoded price of asset amount in USD
      **/
     function assetToUsd(address asset, uint amount) public override view returns (uint) {
-        return ethToUsd(assetToEth(asset, amount));
+        return IOracleEth(oracleRegistry.oracleByAsset(oracleRegistry.WETH())).ethToUsd(assetToEth(asset, amount));
     }
 
     /**
@@ -71,7 +72,7 @@ contract ChainlinkedKeep3rV1OracleMainAsset is ChainlinkedOracleSimple {
      * @param amount Amount of tokens
      * @return Q112-encoded price of asset amount in ETH
      **/
-    function assetToEth(address asset, uint amount) public view override returns (uint) {
+    function assetToEth(address asset, uint amount) public view returns (uint) {
         if (amount == 0) {
             return 0;
         }
@@ -118,15 +119,5 @@ contract ChainlinkedKeep3rV1OracleMainAsset is ChainlinkedOracleSimple {
         // overflow is desired
         uint avgPrice = (priceCumulativeEnd - priceCumulativeStart) / timeElapsed;
         return avgPrice.mul(amountIn);
-    }
-
-    /**
-     * @notice ETH/USD price feed from Chainlink, see for more info: https://feeds.chain.link/eth-usd
-     * returns The price of given amount of Ether in USD (0 decimals)
-     **/
-    function ethToUsd(uint ethAmount) public override view returns (uint) {
-        require(ethUsdChainlinkAggregator.latestTimestamp() > now - 6 hours, "Unit Protocol: STALE_CHAINLINK_PRICE");
-        uint ethUsdPrice = uint(ethUsdChainlinkAggregator.latestAnswer());
-        return ethAmount.mul(ethUsdPrice).div(ETH_USD_DENOMINATOR);
     }
 }

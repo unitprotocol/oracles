@@ -8,20 +8,31 @@ pragma experimental ABIEncoderV2;
 
 import "../helpers/SafeMath.sol";
 import "../helpers/IUniswapV2Pair.sol";
-import "../abstract/ChainlinkedKeydonixOracleMainAssetAbstract.sol";
-import "../abstract/ChainlinkedKeydonixOraclePoolTokenAbstract.sol";
+import "../helpers/IKeydonixOracleUsd.sol";
+import "../helpers/IKeydonixOracleEth.sol";
+import "../helpers/IOracleEth.sol";
+import "../helpers/IOracleRegistry.sol";
+import "../helpers/IVaultParameters.sol";
 
 
 /**
  * @title ChainlinkedKeydonixOraclePoolToken
- * @author Unit Protocol: Artem Zakharov (az@unit.xyz), Alexander Ponomorev (@bcngod)
  * @dev Calculates the USD price of Uniswap LP tokens
  **/
-contract ChainlinkedKeydonixOraclePoolToken is ChainlinkedKeydonixOraclePoolTokenAbstract {
+contract ChainlinkedKeydonixOraclePoolToken is IKeydonixOracleUsd {
     using SafeMath for uint;
 
-    constructor(address _uniswapOracleMainAsset) public {
-        uniswapOracleMainAsset = ChainlinkedKeydonixOracleMainAssetAbstract(_uniswapOracleMainAsset);
+    uint public constant Q112 = 2 ** 112;
+
+    IOracleRegistry public immutable oracleRegistry;
+
+    IVaultParameters public immutable vaultParameters;
+
+    constructor(address _oracleRegistry, address _vaultParameters) public {
+        require(_oracleRegistry != address(0), "Unit Protocol: ZERO_ADDRESS");
+        require(_vaultParameters != address(0), "Unit Protocol: ZERO_ADDRESS");
+        oracleRegistry = IOracleRegistry(_oracleRegistry);
+        vaultParameters = IVaultParameters(_vaultParameters);
     }
 
     /**
@@ -45,15 +56,15 @@ contract ChainlinkedKeydonixOraclePoolToken is ChainlinkedKeydonixOraclePoolToke
     {
         IUniswapV2Pair pair = IUniswapV2Pair(asset);
         address underlyingAsset;
-        if (pair.token0() == uniswapOracleMainAsset.WETH()) {
+        if (pair.token0() == oracleRegistry.WETH()) {
             underlyingAsset = pair.token1();
-        } else if (pair.token1() == uniswapOracleMainAsset.WETH()) {
+        } else if (pair.token1() == oracleRegistry.WETH()) {
             underlyingAsset = pair.token0();
         } else {
             revert("Unit Protocol: NOT_REGISTERED_PAIR");
         }
 
-        uint eAvg = uniswapOracleMainAsset.assetToEth(underlyingAsset, 1, proofData); // average price of 1 token in ETH
+        uint eAvg = IKeydonixOracleEth(_selectOracle(underlyingAsset)).assetToEth(underlyingAsset, 1, proofData); // average price of 1 token in ETH
 
         (uint112 _reserve0, uint112 _reserve1,) = pair.getReserves();
         uint aPool; // current asset pool
@@ -90,7 +101,7 @@ contract ChainlinkedKeydonixOraclePoolToken is ChainlinkedKeydonixOraclePoolToke
         uint num = ePoolCalc.mul(2).mul(amount).mul(Q112);
         uint priceInEth = num.div(pair.totalSupply());
 
-        return uniswapOracleMainAsset.ethToUsd(priceInEth);
+        return IOracleEth(oracleRegistry.oracleByAsset(oracleRegistry.WETH())).ethToUsd(priceInEth);
     }
 
     function sqrt(uint x) internal pure returns (uint y) {
@@ -104,5 +115,22 @@ contract ChainlinkedKeydonixOraclePoolToken is ChainlinkedKeydonixOraclePoolToke
         } else if (x != 0) {
             y = 1;
         }
+    }
+
+    function _selectOracle(address asset) internal view returns (address oracle) {
+        uint oracleType = _getOracleType(asset);
+        require(oracleType != 0, "Unit Protocol: INVALID_ORACLE_TYPE");
+        oracle = oracleRegistry.oracleByType(oracleType);
+        require(oracle != address(0), "Unit Protocol: DISABLED_ORACLE");
+    }
+
+    function _getOracleType(address asset) internal view returns (uint) {
+        uint[] memory keydonixOracleTypes = oracleRegistry.getKeydonixOracleTypes();
+        for (uint i = 0; i < keydonixOracleTypes.length; i++) {
+            if (vaultParameters.isOracleTypeEnabled(keydonixOracleTypes[i], asset)) {
+                return keydonixOracleTypes[i];
+            }
+        }
+        revert("Unit Protocol: NO_ORACLE_FOUND");
     }
 }
