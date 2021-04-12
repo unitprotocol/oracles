@@ -98,8 +98,13 @@ contract ChainlinkedKeydonixOraclePoolToken is IKeydonixOracleUsd {
             ePoolCalc = ePool.sub(eChange);
         }
 
-        uint num = ePoolCalc.mul(2).mul(amount).mul(Q112);
-        uint priceInEth = num.div(pair.totalSupply());
+        uint num = ePoolCalc.mul(2).mul(amount);
+        uint priceInEth;
+        if (num > Q112) {
+            priceInEth = num.div(pair.totalSupply()).mul(Q112);
+        } else {
+            priceInEth = num.mul(Q112).div(pair.totalSupply());
+        }
 
         return IOracleEth(oracleRegistry.oracleByAsset(oracleRegistry.WETH())).ethToUsd(priceInEth);
     }
