@@ -50,9 +50,9 @@ contract ChainlinkedKeydonixOraclePoolToken is IKeydonixOracleUsd {
     function assetToUsd(
         address asset,
         uint amount,
-        UniswapOracle.ProofData memory proofData
+        UniswapOracle.ProofData calldata proofData
     )
-        public
+        external
         override
         view
         returns (uint)
