@@ -31,9 +31,9 @@ contract ChainlinkedKeydonixOracleMainAsset is UniswapOracle, IKeydonixOracleEth
 
     uint public constant Q112 = 2 ** 112;
 
-    IUniswapV2Factory public uniswapFactory;
+    IUniswapV2Factory public immutable uniswapFactory;
 
-    IOracleRegistry public oracleRegistry;
+    IOracleRegistry public immutable oracleRegistry;
 
     address public immutable WETH;
 

@@ -63,7 +63,7 @@ contract ChainlinkedKeep3rV1OracleMainAsset is IOracleUsd {
      * @return Q112-encoded price of asset amount in USD
      **/
     function assetToUsd(address asset, uint amount) public override view returns (uint) {
-        return IOracleEth(oracleRegistry.oracleByAsset(oracleRegistry.WETH())).ethToUsd(assetToEth(asset, amount));
+        return IOracleEth(oracleRegistry.oracleByAsset(WETH)).ethToUsd(assetToEth(asset, amount));
     }
 
     /**

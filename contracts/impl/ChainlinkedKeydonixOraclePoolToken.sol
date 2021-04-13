@@ -24,6 +24,8 @@ contract ChainlinkedKeydonixOraclePoolToken is IKeydonixOracleUsd {
 
     uint public constant Q112 = 2 ** 112;
 
+    address public immutable WETH;
+
     IOracleRegistry public immutable oracleRegistry;
 
     IVaultParameters public immutable vaultParameters;
@@ -33,6 +35,7 @@ contract ChainlinkedKeydonixOraclePoolToken is IKeydonixOracleUsd {
         require(_vaultParameters != address(0), "Unit Protocol: ZERO_ADDRESS");
         oracleRegistry = IOracleRegistry(_oracleRegistry);
         vaultParameters = IVaultParameters(_vaultParameters);
+        WETH = IOracleRegistry(_oracleRegistry).WETH();
     }
 
     /**
@@ -56,9 +59,9 @@ contract ChainlinkedKeydonixOraclePoolToken is IKeydonixOracleUsd {
     {
         IUniswapV2Pair pair = IUniswapV2Pair(asset);
         address underlyingAsset;
-        if (pair.token0() == oracleRegistry.WETH()) {
+        if (pair.token0() == WETH) {
             underlyingAsset = pair.token1();
-        } else if (pair.token1() == oracleRegistry.WETH()) {
+        } else if (pair.token1() == WETH) {
             underlyingAsset = pair.token0();
         } else {
             revert("Unit Protocol: NOT_REGISTERED_PAIR");
@@ -106,7 +109,7 @@ contract ChainlinkedKeydonixOraclePoolToken is IKeydonixOracleUsd {
             priceInEth = num.mul(Q112).div(pair.totalSupply());
         }
 
-        return IOracleEth(oracleRegistry.oracleByAsset(oracleRegistry.WETH())).ethToUsd(priceInEth);
+        return IOracleEth(oracleRegistry.oracleByAsset(WETH)).ethToUsd(priceInEth);
     }
 
     function sqrt(uint x) internal pure returns (uint y) {
