@@ -128,7 +128,7 @@ library FixedPoint {
 }
 
 // library with helper methods for oracles that are concerned with computing average prices
-library PancakeOracleLibrary {
+library PancakeV2OracleLibrary {
     using FixedPoint for *;
 
     // helper function that returns the current block timestamp within the range of uint32, i.e. [0, 2**32 - 1]
@@ -359,7 +359,7 @@ library PancakeLibrary {
                 hex'ff',
                 factory,
                 keccak256(abi.encodePacked(token0, token1)),
-                hex'd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66' // init code hash of Pancake
+                hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5' // init code hash of Pancake
             ))));
     }
 
@@ -420,7 +420,7 @@ library PancakeLibrary {
 }
 
 // sliding oracle that uses observations collected to provide moving price averages in the past
-contract PancakeTwap {
+contract PancakeV2Twap {
     using FixedPoint for *;
     using SafeMath for uint;
 
@@ -451,9 +451,9 @@ contract PancakeTwap {
 
     address public constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
 
-    address public constant factory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
+    address public constant factory = 0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73;
     // this is redundant with granularity and windowSize, but stored for gas savings & informational purposes.
-    uint public periodSize = 1800;
+    uint public periodSize = 3000;
     
 
     /**
@@ -517,7 +517,7 @@ contract PancakeTwap {
         address token0 = IPancakePair(pair).token0();
         address token1 = IPancakePair(pair).token1();
         require(token0 == WBNB || token1 == WBNB, "PancakeTwap::addPair: !WBNB");
-        (uint price0Cumulative, uint price1Cumulative,) = PancakeOracleLibrary.currentCumulativePrices(pair);
+        (uint price0Cumulative, uint price1Cumulative,) = PancakeV2OracleLibrary.currentCumulativePrices(pair);
         observations[pair].push(Observation(block.timestamp, token0 == WBNB ? price1Cumulative : price0Cumulative));
     }
 
@@ -595,7 +595,7 @@ contract PancakeTwap {
         uint timeElapsed = block.timestamp - _point.timestamp;
         address token0 = IPancakePair(pair).token0();
         if (timeElapsed > periodSize) {
-            (uint price0Cumulative, uint price1Cumulative,) = PancakeOracleLibrary.currentCumulativePrices(pair);
+            (uint price0Cumulative, uint price1Cumulative,) = PancakeV2OracleLibrary.currentCumulativePrices(pair);
             observations[pair].push(Observation(block.timestamp, token0 == WBNB ? price1Cumulative : price0Cumulative));
             return true;
         }
