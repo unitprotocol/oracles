@@ -61,7 +61,7 @@ function nextProvider() {
 function work() {
     getOracle(currentProvider).methods.workable().call({ from: sender }, function(error, result) {
         if (error) {
-            console.error(error)
+            console.error(String(error))
             nextProvider()
             return work()
         }
@@ -70,8 +70,9 @@ function work() {
                 if (gasPrice) {
                     update(gasPrice, currentProvider);
                 } else {
+                    console.error(String(err))
                     nextProvider()
-                    setTimeout(work, 300_000)
+                    return work()
                 }
             })
         } else {
@@ -102,8 +103,8 @@ function update(gasPrice, web3) {
 
         // Broadcast the transaction
         web3.eth.sendSignedTransaction(raw, (err, tx) => {
-            if (err) {console.error(err)}
-            console.log('tx ' + tx)
+            if (err) { console.error(String(err)) }
+            console.log('tx', tx, gasPrice, txCount)
         });
     });
     setTimeout(work, 300_000);
